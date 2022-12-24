@@ -1,80 +1,55 @@
-/*
-Welcome to JP Learning
-*/
-#include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
+#include <ESP8266WiFi.h>
 #include <ArduinoJson.h>
 
-// Wi-Fi Credentials
-const char* ssid = "Your SSID";
-const char* password = "Your Password";
+#define REED_SWITCH 5 //D1
+#define LED D2
 
-WiFiClient client;
-HTTPClient http;
+const char* serverName = "http://104.251.216.158/api/manhole/:id";
+// http://104.251.216.158/api/manhole/:id
+
+int status = WL_IDLE_STATUS; //not required.
+int Manhole_No = 1;
+const char* ssid = "My-WiFi";
+const char* password = "12341234";
+int doorClosed = 1;
 
 void setup() {
+  pinMode(REED_SWITCH, INPUT);
+  pinMode(LED, OUTPUT);
   Serial.begin(115200);
-  delay(1000);
-  Serial.println("\n\nWelcome to JP Learning\n");
-  setup_wifi(); 
+  setupWifi();
+   //get_http();
+
 }
-void loop() {
-  //Check WiFi connection status
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("\n\nPerforming HTTP PUT Request\n");
-    
-    // HTTP Details
-    String serverUrl = "http://jiyepakistanlearning.herokuapp.com/api/v1/test/1";
-    http.begin(client, serverUrl);
-    //    http.setAuthorization("Basic token");
-    //    http.setAuthorization("Bearer token");
-
-    String body = "{\"name\":\"PUT JP Learning\"}";
-    // Send HTTP POST request
-    int httpResponseCode = http.PUT(body);
-    Serial.print("HTTP Response code: ");
-    Serial.println(httpResponseCode);
-
-    if (httpResponseCode == HTTP_CODE_OK) {
-      String payload = http.getString();
-      Serial.println("Response payload: " + payload);
-
-      DynamicJsonDocument doc(1024);
-      deserializeJson(doc, payload);
-      JsonObject obj = doc.as<JsonObject>();
-
-      String response = obj[String("response")];
-      Serial.println("\nresponse is : " + response);
-      String id = obj[String("id")];
-      Serial.println("id is : " + id);
-    } else {
-      Serial.print("Error code: ");
-      Serial.println(httpResponseCode);
-    }
-    // Free resources
-    http.end();
-  } else {
-    Serial.println("WiFi Disconnected");
-  }
-  delay(10000);
-}
-
-void setup_wifi() {
-  delay(10);
-  // We start by connecting to a WiFi network
-  Serial.println();
-  Serial.print("Connecting to ");
-  Serial.println(ssid);
-
-  WiFi.begin(ssid, password);
-
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
+void setupWifi()
+{
+   WiFi.mode(WIFI_STA);
+   status = WiFi.begin(ssid, password);    
+   Serial.print("Attempting to connect to SSID: ");
+   Serial.println(ssid);  
+   while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
     Serial.print(".");
-  }
+   }
+   Serial.println("Connected to wifi");
+   Serial.println(WiFi.localIP());
+}
 
-  Serial.println("");
-  Serial.println("WiFi connected");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
+void loop() {
+   if (WiFi.status() != WL_CONNECTED)
+   {
+     setupWifi();
+   }
+    if ((digitalRead(REED_SWITCH) == LOW) && doorClosed == 0 )
+    {
+      Serial.println("DOOR OPEN!!");  
+      doorClosed = 1;
+    } 
+    else if ((digitalRead(REED_SWITCH) == HIGH) && doorClosed == 1)
+    {
+      Serial.println("DOOR CLOSED!!");  
+      doorClosed = 0;
+    }
+    delay(1000);
 }
